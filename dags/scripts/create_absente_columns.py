@@ -37,9 +37,6 @@ columns_target_name = [c['name'] for c in columns_target]
 columns_info = inspector.get_columns(main_table, schema=main_schema)
 
 for col in columns_info:
-    print(f"""Column: {col['name']}, Type: {col['type']}, nullable: {col['nullable']}, Default: {col['default']}, autoincrement: {col['autoincrement']}
-,comment: {col['comment']}""")
-
     if col['name'] not in columns_target_name:
         if main_table in cloned_tables:
             main_query = f""" ALTER TABLE {cloned_schema}.{main_table} ADD COLUMN {col['name']} {col['type']} """
