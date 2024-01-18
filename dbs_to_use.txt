@@ -1,0 +1,26 @@
+TARGET
+Server: clippers-prod-601a-sqlserver.database.windows.net
+Dev db: [DWH_TICKETING_MASTER_CHECKER] 
+
+
+SOURCE
+Server: azsqlserver-601a-sqlprod.database.windows.net
+Prod Source DB: all MODEL
+
+Dev App DB: [APP_MASTER_CHECKER_DEV]
+Prod App DB: [APP_MASTER_CHECKER]
+
+
+azsqlserver-601a-sqlprod.database.windows.net
+
+azsqlserver-601a-sqlprod.database.windows.net
+
+Levi.deAndrade
+
+#l3v^!d$ApP%^20*&23_
+
+ARN-BI-26VM
+LDX$H#F^D4lg0v^F103#
+
+
+Levi.deAndrade@heat.com
