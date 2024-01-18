@@ -11,17 +11,17 @@ def remove_collate(column_type):
     return str(column_type).split(" ")[0]
 
 
-user = "levi"
-password = "3523"
-server_name = "DESKTOP-O17EGB4"
-main_db = "STANDARD"
+user = "Levi.deAndrade"
+password = "#l3v^!d$ApP%^20*&23_"
+main_db = "APP_MASTER_CHECKER_DEV"
+server_name = "azsqlserver-601a-sqlprod.database.windows.net"
 driver_odbc = "ODBC+Driver+17+for+SQL+Server"
 
 
 main_schema = "dbo"
-cloned_db = "CUSTOMER_1"
+cloned_db = "APP_MASTER_CHECKER_DEV"
 cloned_schema = "dbo"
-table_name = "USER_"
+table_name = "STANDARD"
 
 Base = declarative_base()
 
@@ -56,6 +56,7 @@ try:
     # Getting table's name
     cloned_tables = inspector_clone.get_table_names(schema=cloned_schema)
     #Columns name
+    main_table = "CUSTOMER_1"
     columns_target_name = [c['name']  for c in inspector_clone.get_columns(main_table,schema=cloned_schema)]
 except Exception as e:
     print(e)
