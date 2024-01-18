@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine, MetaData, Table, Column
+from sqlalchemy import create_engine, MetaData, Table, Column, DDL, event
 from sqlalchemy.inspection import inspect
 from sqlalchemy.dialects.postgresql import *
+from sqlalchemy.orm import declarative_base
 
 
 user = "postgres"
@@ -14,6 +15,8 @@ main_schema = "postgres_1"
 cloned_db = "new_db"
 cloned_schema = "new_db_1"
 table_name = "user"
+
+Base = declarative_base()
 
 try:
     # Conecction to main db
@@ -51,14 +54,18 @@ if main_table in cloned_tables:
     for col in columns_source:
         if col['name'] not in columns_target_name:
             main_query = f""" ALTER TABLE {cloned_schema}.{main_table} ADD COLUMN {col['name']} {col['type']} """
+            print(f"----- comment {col['comment']}")
+            print(f"----- nullable {col['nullable']}")
+            print(f"----- type {col['type']}")
 
-            if col['nullable'] is not None:
+            if col['nullable'] is False:
                 main_query += f""" NOT NULL DEFAULT {col['default']} """
 
             if col['comment'] is not None:
                 main_query += f""" {col['comment']} """
 
-            cloned_engine.execute(main_query)
+            event.listen(Base.metadata, 'before_create', DDL(main_query).execute_if(dialect='postgresql'))
+            Base.metadata.create_all(cloned_engine)
             print(f"Completed adding columns in {cloned_db}.{cloned_schema}.{main_table}")
             
 else:

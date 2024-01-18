@@ -5,7 +5,7 @@ from sqlalchemy.orm import declarative_base
 import re
 
 
-metadata_obj = MetaData()
+
 
 def remove_parenteses(texto):
     return re.sub(r'\(.*\)', '', texto)
@@ -62,7 +62,6 @@ if main_table_name in cloned_tables:
     print(f"table {main_table_name} found in {cloned_tables}")
 
     for column_target in columns_target_type.keys():
-        columns_target_type[column_target]
         if (remove_parenteses(str(columns_target_type[column_target])) != remove_parenteses(str(columns_source_type[column_target]))) is True:
          
 
