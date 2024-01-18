@@ -1,0 +1,36 @@
+from sqlalchemy import create_engine
+import pandas as pd
+
+def execute_query_and_store_result(connection_string, query):
+    engine = create_engine(connection_string)
+
+    # Executar a consulta e armazenar o resultado em um DataFrame
+    with engine.connect() as connection:
+        result = pd.read_sql(query, connection)
+
+    return result
+
+# Exemplo de uso
+user = "levi"
+password = "3523"
+server_name = "DESKTOP-O17EGB4"
+main_db = "STANDARD"
+driver_odbc = "ODBC+Driver+17+for+SQL+Server"
+
+
+main_schema = "dbo"
+cloned_db = "CUSTOMER_1"
+cloned_schema = "dbo"
+table_name = "USER_"
+
+connection_string = f"mssql+pyodbc://{user}:{password}@{server_name}/{cloned_db}?driver={driver_odbc}"
+query = f"""SELECT name
+            FROM sys.objects
+            where SCHEMA_NAME(schema_id) = 'dbo'
+            and name like '%USER_%'
+            and name like '%nome_comp%'
+            and type_desc like 'DEFAULT%' """
+resultado = execute_query_and_store_result(connection_string, query)
+
+print(" ")
+print(resultado.iloc[0, 0])
