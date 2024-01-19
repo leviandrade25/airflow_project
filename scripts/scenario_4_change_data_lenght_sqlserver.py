@@ -27,17 +27,17 @@ def remove_collate(column_type):
 Base = declarative_base()
 
 
-user = "levi"
-password = "3523"
-server_name = "DESKTOP-O17EGB4"
-main_db = "STANDARD"
+user = "Levi.deAndrade"
+password = "#l3v^!d$ApP%^20*&23_"
+server_name = "azsqlserver-601a-sqlprod.database.windows.net"
+main_db = "APP_MASTER_CHECKER_DEV"
 driver_odbc = "ODBC+Driver+17+for+SQL+Server"
 
 
 main_schema = "dbo"
-cloned_db = "CUSTOMER_1"
-cloned_schema = "dbo"
-table_name = "USER_"
+cloned_db = "APP_MASTER_CHECKER_DEV"
+cloned_schema = "c1"
+table_name = "STANDARD"
 
 try:
 # Conecction to main db
@@ -85,10 +85,14 @@ if main_table_name in cloned_tables:
                                 FROM sys.objects
                                 where SCHEMA_NAME(schema_id) = '{cloned_schema}'
                                 and name like '%{table_name}%'
-                                and name like '%{column_target[:9]}%'
+                                and name like '%{column_target[:5]}%'
                                 and type_desc like 'DEFAULT%' """
 
-                    drop_constraint = DDL(f"""ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {execute_query_and_store_result(cloned_uri,query)}""")
+                    
+                    drop_constraint = DDL(f"""BEGIN TRY
+                                                ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {execute_query_and_store_result(cloned_uri,query)}
+                                              END TRY BEGIN CATCH END CATCH""")
+                    print(f" !CONSTRAINT {execute_query_and_store_result(cloned_uri,query)} DROPPED FOR THIS OPERATION")
                     event.listen(Base.metadata, 'before_create', drop_constraint.execute_if(dialect=mssql.dialect()))
                 except Exception as e:
                     print("Constraint Default not Found")

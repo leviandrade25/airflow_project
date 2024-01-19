@@ -39,7 +39,7 @@ driver_odbc = "ODBC+Driver+17+for+SQL+Server"
 
 main_schema = "dbo"
 cloned_db = "APP_MASTER_CHECKER_DEV"
-cloned_schema = "dbo"
+cloned_schema = "c1"
 table_name = "STANDARD"
 
 try:
@@ -72,7 +72,6 @@ try:
     # Getting table's name
     cloned_tables = inspector_clone.get_table_names(schema=cloned_schema)
     # Cloned Columns type informations
-    main_table_name = "CUSTOMER_1"
     columns_target_type = {c['name']: c['type'] for c in inspector_clone.get_columns(main_table_name, schema=cloned_schema)}
 except Exception as e:
     print(e)
@@ -91,7 +90,7 @@ if main_table_name in cloned_tables:
                                 FROM sys.objects
                                 where SCHEMA_NAME(schema_id) = '{cloned_schema}'
                                 and name like '%{main_table_name}%'
-                                and name like '%{column_target[:9]}%'
+                                and name like '%{column_target[:5]}%'
                                 and type_desc like 'DEFAULT%' """
 
                     drop_constraint = DDL(f"""BEGIN TRY
