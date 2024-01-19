@@ -20,7 +20,7 @@ driver_odbc = "ODBC+Driver+17+for+SQL+Server"
 
 main_schema = "dbo"
 cloned_db = "APP_MASTER_CHECKER_DEV"
-cloned_schema = "dbo"
+cloned_schema = "c1"
 table_name = "STANDARD"
 
 Base = declarative_base()
@@ -56,14 +56,13 @@ try:
     # Getting table's name
     cloned_tables = inspector_clone.get_table_names(schema=cloned_schema)
     #Columns name
-    main_table = "CUSTOMER_1"
-    columns_target_name = [c['name']  for c in inspector_clone.get_columns(main_table,schema=cloned_schema)]
+    columns_target_name = [c['name'].lower()  for c in inspector_clone.get_columns(main_table,schema=cloned_schema)]
 except Exception as e:
     print(e)
 
 if main_table in cloned_tables:
     for col in columns_source:
-        if col['name'] not in columns_target_name:
+        if col['name'].lower() not in columns_target_name:
             main_query = f""" ALTER TABLE {cloned_schema}.{main_table} ADD {col['name']} {remove_collate(col['type'])} """
 
             if col['nullable'] is False:

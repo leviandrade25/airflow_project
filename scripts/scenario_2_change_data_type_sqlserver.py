@@ -39,7 +39,7 @@ driver_odbc = "ODBC+Driver+17+for+SQL+Server"
 
 main_schema = "dbo"
 cloned_db = "APP_MASTER_CHECKER_DEV"
-cloned_schema = "dbo"
+cloned_schema = "c1"
 table_name = "STANDARD"
 
 try:
@@ -72,7 +72,6 @@ try:
     # Getting table's name
     cloned_tables = inspector_clone.get_table_names(schema=cloned_schema)
     # Cloned Columns type informations
-    main_table_name = "CUSTOMER_1"
     columns_target_type = {c['name']: c['type'] for c in inspector_clone.get_columns(main_table_name, schema=cloned_schema)}
 except Exception as e:
     print(e)
@@ -87,12 +86,20 @@ if main_table_name in cloned_tables:
         if column_target in columns_source_type.keys():
             if (remove_parenteses(str(columns_target_type[column_target])) != remove_parenteses(str(columns_source_type[column_target]))) is True:
                 try:
-                    query = f"""SELECT name
-                                FROM sys.objects
-                                where SCHEMA_NAME(schema_id) = '{cloned_schema}'
-                                and name like '%{main_table_name}%'
-                                and name like '%{column_target[:9]}%'
-                                and type_desc like 'DEFAULT%' """
+                    query = f"""SELECT 
+                                    dc.name AS 'DefaultConstraintName'
+                                FROM 
+                                    sys.columns c
+                                    INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+                                    LEFT JOIN sys.default_constraints dc ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+                                    LEFT JOIN sys.foreign_key_columns fkc ON c.object_id = fkc.parent_object_id AND c.column_id = fkc.parent_column_id
+                                    LEFT JOIN sys.foreign_keys fk ON fkc.constraint_object_id = fk.object_id
+                                    LEFT JOIN sys.tables ref_t ON fk.referenced_object_id = ref_t.object_id
+                                    LEFT JOIN sys.columns ref_c ON fkc.referenced_object_id = ref_c.object_id AND fkc.referenced_column_id = ref_c.column_id
+                                WHERE 
+                                    c.object_id = OBJECT_ID('{main_table_name}')
+                                AND
+                                    c.name = '{column_target}' """
 
                     drop_constraint = DDL(f"""BEGIN TRY
                                                 ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {execute_query_and_store_result(cloned_uri,query)}
