@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, MetaData, Table, MetaData, DDL, event
 from sqlalchemy.inspection import inspect
 from sqlalchemy.dialects import mssql
 from sqlalchemy.orm import declarative_base
+import logging
 
 
    
@@ -32,7 +33,7 @@ try:
     metadata.reflect(bind=master_engine)
     inspector = inspect(master_engine)
 except Exception as e:
-    print(e)
+    logging.info(e)
 
 try:
     # Table to be compared
@@ -41,7 +42,7 @@ try:
     columns_source_name = [c['name'] for c in columns_source]
     table = Table(main_table, metadata, autoload=True, autoload_with=master_engine)
 except Exception as e:
-    print(e)
+    logging.info(e)
 
 
 try:
@@ -50,7 +51,7 @@ try:
     cloned_engine = create_engine(cloned_uri)
     inspector_clone = inspect(cloned_engine)
 except Exception as e:
-    print(e)
+    logging.info(e)
 
 try:
     # Getting table's name
@@ -58,7 +59,7 @@ try:
     #Columns name
     columns_target_name = [c['name'].lower()  for c in inspector_clone.get_columns(main_table,schema=cloned_schema)]
 except Exception as e:
-    print(e)
+    logging.info(e)
 
 if main_table in cloned_tables:
     for col in columns_source:
@@ -71,10 +72,10 @@ if main_table in cloned_tables:
 
             event.listen(Base.metadata, 'before_create', DDL(main_query).execute_if(dialect=mssql.dialect()))
             print("")
-            print(f"Completed adding column {col['name']} in {cloned_db}.{cloned_schema}.{main_table}")
+            logging.info(f"Completed adding column {col['name']} in {cloned_db}.{cloned_schema}.{main_table}")
     Base.metadata.create_all(cloned_engine)
             
 else:
-    print(f" Table {main_table} not found in {cloned_db}.{cloned_schema}")
+    logging.info(f" Table {main_table} not found in {cloned_db}.{cloned_schema}")
     exit()
         

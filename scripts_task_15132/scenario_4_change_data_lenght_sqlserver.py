@@ -4,6 +4,7 @@ from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.postgresql import *
 from sqlalchemy.orm import declarative_base
 import re
+import logging
 import pandas as pd
 
 
@@ -45,7 +46,7 @@ try:
     master_engine = create_engine(database_uri)
     inspector = inspect(master_engine)
 except Exception as e:
-    print(e)
+    logging.info(e)
     exit()
 
 try:
@@ -54,7 +55,8 @@ try:
     # Main Columns type informations
     columns_source_type = {c['name']: c['type'] for c in inspector.get_columns(main_table_name, schema=main_schema)}
 except Exception as e:
-    print(e)
+    logging.info(e)
+    exit()
 
 
 try:
@@ -63,7 +65,8 @@ try:
     cloned_engine = create_engine(cloned_uri)
     inspector_clone = inspect(cloned_engine)
 except Exception as e:
-    print(e)
+    logging.info(e)
+    exit()
 
 try:
     # Getting table's name
@@ -71,12 +74,11 @@ try:
     # Cloned Columns type informations
     columns_target_type = {c['name']: c['type'] for c in inspector_clone.get_columns(main_table_name, schema=cloned_schema)}
 except Exception as e:
-    print(e)
+    logging.info(e)
+    exit()
 
 
 if main_table_name in cloned_tables:
-    print(f"table {main_table_name} found in {cloned_tables}")
-
     for column_target in columns_target_type.keys():
         if column_target in columns_source_type.keys():
             if (str(columns_target_type[column_target]) != str(columns_source_type[column_target])) is True:
@@ -101,11 +103,11 @@ if main_table_name in cloned_tables:
                     drop_constraint = DDL(f"""BEGIN TRY
                                                 ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {query_return}
                                               END TRY BEGIN CATCH END CATCH""")
-                    print(f" !CONSTRAINT {execute_query_and_store_result(cloned_uri,query)} DROPPED FOR THIS OPERATION")
+                    logging.info(f" !CONSTRAINT {query_return} DROPPED FOR THIS OPERATION")
                     event.listen(Base.metadata, 'before_create', drop_constraint.execute_if(dialect=mssql.dialect()))
                 except Exception as e:
-                    print("Constraint Default not Found")
-                    print(e)      
+                    logging.info("Constraint Default not Found")
+                    logging.info(e)      
 
                 alter_column_query = DDL(f"""ALTER TABLE {cloned_schema}.{main_table_name} 
                                             ALTER COLUMN {column_target} 
@@ -114,10 +116,10 @@ if main_table_name in cloned_tables:
                     
                     
                 event.listen(Base.metadata, 'before_create', alter_column_query.execute_if(dialect=mssql.dialect()))
-                print(f"Acomplished ALTER TABLE in {column_target} to type {remove_collate(columns_source_type[column_target])}")
+                logging.info(f"Acomplished ALTER TABLE in {column_target} to type {remove_collate(columns_source_type[column_target])}")
             Base.metadata.create_all(cloned_engine)    
 else:
-    print(f"Table {main_table_name} Not Found in {cloned_db}.{cloned_schema}")
+    logging.info(f"Table {main_table_name} Not Found in {cloned_db}.{cloned_schema}")
     exit()
 
 
