@@ -81,16 +81,25 @@ if main_table_name in cloned_tables:
         if column_target in columns_source_type.keys():
             if (str(columns_target_type[column_target]) != str(columns_source_type[column_target])) is True:
                 try:
-                    query = f"""SELECT name
-                                FROM sys.objects
-                                where SCHEMA_NAME(schema_id) = '{cloned_schema}'
-                                and name like '%{table_name}%'
-                                and name like '%{column_target[:5]}%'
-                                and type_desc like 'DEFAULT%' """
-
-                    
+                    query = f"""SELECT 
+                                    dc.name
+                                FROM 
+                                    sys.columns c
+                                        INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id
+                                        INNER JOIN sys.tables t ON c.object_id = t.object_id
+                                        INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                                        LEFT JOIN sys.default_constraints dc ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+                                        LEFT JOIN sys.foreign_key_columns fkc ON c.object_id = fkc.parent_object_id AND c.column_id = fkc.parent_column_id
+                                        LEFT JOIN sys.foreign_keys fk ON fkc.constraint_object_id = fk.object_id
+                                        LEFT JOIN sys.tables ref_t ON fk.referenced_object_id = ref_t.object_id
+                                        LEFT JOIN sys.columns ref_c ON fkc.referenced_object_id = ref_c.object_id AND fkc.referenced_column_id = ref_c.column_id
+                                WHERE
+                                   c.name = '{column_target}' 
+                                AND 
+                                    s.name = '{cloned_schema}' """
+                    query_return = execute_query_and_store_result(cloned_uri,query)
                     drop_constraint = DDL(f"""BEGIN TRY
-                                                ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {execute_query_and_store_result(cloned_uri,query)}
+                                                ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {query_return}
                                               END TRY BEGIN CATCH END CATCH""")
                     print(f" !CONSTRAINT {execute_query_and_store_result(cloned_uri,query)} DROPPED FOR THIS OPERATION")
                     event.listen(Base.metadata, 'before_create', drop_constraint.execute_if(dialect=mssql.dialect()))

@@ -6,7 +6,15 @@ from sqlalchemy.orm import declarative_base
 import re
 import sys
 import pandas as pd
-from modulo_levi import *
+
+
+def execute_query_and_store_result(connection_string, query):
+    engine = create_engine(connection_string)
+
+    with engine.connect() as connection:
+        result = pd.read_sql(query, connection)
+
+    return result.iloc[0,0]
 
 
 def remove_collate(column_type):
@@ -92,12 +100,12 @@ if main_table_name in cloned_tables:
                                    c.name = '{column_target}' 
                                 AND 
                                     s.name = '{cloned_schema}' """
-                    query_return = modules.execute_query_and_store_result(cloned_uri,query)
+                    query_return = execute_query_and_store_result(cloned_uri,query)
 
                     drop_constraint = DDL(f"""BEGIN TRY
                                                 ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {query_return}
                                               END TRY BEGIN CATCH END CATCH""")
-                    print(f" !CONSTRAINT {modules.execute_query_and_store_result(cloned_uri,query)} DROPPED FOR THIS OPERATION")
+                    print(f" !CONSTRAINT {query_return} DROPPED FOR THIS OPERATION")
                     event.listen(Base.metadata, 'before_create', drop_constraint.execute_if(dialect=mssql.dialect()))
                 except Exception as e:
                     del drop_constraint
