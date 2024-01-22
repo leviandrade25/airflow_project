@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, MetaData, Table, Column, DDL, event
+from sqlalchemy import create_engine, DDL, event
 from sqlalchemy.inspection import inspect
 from sqlalchemy.dialects.postgresql import *
 from sqlalchemy.dialects import mssql

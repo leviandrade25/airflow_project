@@ -1,22 +1,12 @@
-from sqlalchemy import create_engine, MetaData, Table, Column, DDL, event
+from sqlalchemy import create_engine, DDL, event
 from sqlalchemy.inspection import inspect
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.postgresql import *
 from sqlalchemy.orm import declarative_base
 import re
+import sys
 import pandas as pd
-
-
-def execute_query_and_store_result(connection_string, query):
-    engine = create_engine(connection_string)
-
-    with engine.connect() as connection:
-        result = pd.read_sql(query, connection)
-
-    return result.iloc[0, 0]
-
-
-
+from modulo_levi import *
 
 
 def remove_collate(column_type):
@@ -40,7 +30,7 @@ driver_odbc = "ODBC+Driver+17+for+SQL+Server"
 main_schema = "dbo"
 cloned_db = "APP_MASTER_CHECKER_DEV"
 cloned_schema = "c1"
-table_name = "STANDARD"
+table_name = "bignametabletoidentifyconstraint"
 
 try:
 # Conecction to main db
@@ -85,9 +75,9 @@ if main_table_name in cloned_tables:
         print(column_target)
         if column_target in columns_source_type.keys():
             if (remove_parenteses(str(columns_target_type[column_target])) != remove_parenteses(str(columns_source_type[column_target]))) is True:
-                try:
+                try:                               
                     query = f"""SELECT 
-                                    dc.name AS 'DefaultConstraintName'
+                                    dc.name
                                 FROM 
                                     sys.columns c
                                         INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id
@@ -98,19 +88,16 @@ if main_table_name in cloned_tables:
                                         LEFT JOIN sys.foreign_keys fk ON fkc.constraint_object_id = fk.object_id
                                         LEFT JOIN sys.tables ref_t ON fk.referenced_object_id = ref_t.object_id
                                         LEFT JOIN sys.columns ref_c ON fkc.referenced_object_id = ref_c.object_id AND fkc.referenced_column_id = ref_c.column_id
-                                WHERE 
-                                    c.object_id = OBJECT_ID('{main_table_name}')
-                                AND
-                                    c.name = '{column_target}' 
+                                WHERE
+                                   c.name = '{column_target}' 
                                 AND 
-                                    AND
-	                                s.name = '{cloned_schema}' """
-                                
+                                    s.name = '{cloned_schema}' """
+                    query_return = modules.execute_query_and_store_result(cloned_uri,query)
 
                     drop_constraint = DDL(f"""BEGIN TRY
-                                                ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {execute_query_and_store_result(cloned_uri,query)}
+                                                ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {query_return}
                                               END TRY BEGIN CATCH END CATCH""")
-                    print(f" !CONSTRAINT {execute_query_and_store_result(cloned_uri,query)} DROPPED FOR THIS OPERATION")
+                    print(f" !CONSTRAINT {modules.execute_query_and_store_result(cloned_uri,query)} DROPPED FOR THIS OPERATION")
                     event.listen(Base.metadata, 'before_create', drop_constraint.execute_if(dialect=mssql.dialect()))
                 except Exception as e:
                     del drop_constraint
