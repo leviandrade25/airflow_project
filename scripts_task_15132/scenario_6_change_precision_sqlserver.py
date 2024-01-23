@@ -3,26 +3,8 @@ from sqlalchemy.inspection import inspect
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.postgresql import *
 from sqlalchemy.orm import declarative_base
-import re
 import logging
-import pandas as pd
-
-
-def execute_query_and_store_result(connection_string, query):
-    engine = create_engine(connection_string)
-
-    with engine.connect() as connection:
-        result = pd.read_sql(query, connection)
-
-    return result.iloc[0, 0]
-
-
-
-
-
-def remove_collate(column_type):
-    return str(column_type).split(" COLATE")[0]
-
+from function_module._functions import remove_collate, execute_query_and_store_result
 
 
 Base = declarative_base()

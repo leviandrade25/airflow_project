@@ -3,21 +3,9 @@ from sqlalchemy.inspection import inspect
 from sqlalchemy.dialects.postgresql import *
 from sqlalchemy.dialects import mssql
 from sqlalchemy.orm import declarative_base
-import re
 import logging
-import pandas as pd
+from function_module._functions import  get_constraint_name, get_constraint_name
 
-
-def execute_query_and_store_result(connection_string, query):
-    engine = create_engine(connection_string)
-
-    with engine.connect() as connection:
-        result = pd.read_sql(query, connection)
-
-    return result.iloc[0, 0]
-
-def remove_parenteses(texto):
-    return re.sub(r'\(.*\)', '', texto)
 
 Base = declarative_base()
 
@@ -47,7 +35,7 @@ try:
     # Table to be compared
     main_table_name = table_name
     # Main Columns type informations
-    columns_source = {c['name']: c['name'] for c in inspector.get_columns(main_table_name, schema=main_schema)}
+    columns_source = {c['name'].lower(): c['name'] for c in inspector.get_columns(main_table_name, schema=main_schema)}
 except Exception as e:
     logging.info(e)
     exit()
@@ -66,7 +54,7 @@ try:
     # Getting table's name
     cloned_tables = inspector_clone.get_table_names(schema=cloned_schema)
     # Cloned Columns type informations
-    columns_target = {c['name']: c['name'] for c in inspector_clone.get_columns(main_table_name, schema=cloned_schema)}
+    columns_target = {c['name'].lower(): c['name'] for c in inspector_clone.get_columns(main_table_name, schema=cloned_schema)}
 except Exception as e:
     logging.info(e)
     exit()
@@ -76,41 +64,30 @@ if main_table_name in cloned_tables:
         drop_constraint = ""
         if column_target not in columns_source.keys():
             try:
-                query = f"""SELECT 
-                                    dc.name
-                                FROM 
-                                    sys.columns c
-                                        INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id
-                                        INNER JOIN sys.tables t ON c.object_id = t.object_id
-                                        INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-                                        LEFT JOIN sys.default_constraints dc ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
-                                        LEFT JOIN sys.foreign_key_columns fkc ON c.object_id = fkc.parent_object_id AND c.column_id = fkc.parent_column_id
-                                        LEFT JOIN sys.foreign_keys fk ON fkc.constraint_object_id = fk.object_id
-                                        LEFT JOIN sys.tables ref_t ON fk.referenced_object_id = ref_t.object_id
-                                        LEFT JOIN sys.columns ref_c ON fkc.referenced_object_id = ref_c.object_id AND fkc.referenced_column_id = ref_c.column_id
-                                WHERE
-                                   c.name = '{column_target}' 
-                                AND 
-                                    s.name = '{cloned_schema}' """
-                query_return = execute_query_and_store_result(cloned_uri,query)
-                drop_constraint = DDL(f"""BEGIN TRY
-                                                ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {query_return}
-                                              END TRY BEGIN CATCH END CATCH""")
-                print(f" !CONSTRAINT {query_return} DROPPED FOR THIS OPERATION")
-                event.listen(Base.metadata, 'before_create', drop_constraint.execute_if(dialect=mssql.dialect()))
+                query_return = get_constraint_name(column_target, cloned_schema, cloned_uri)
+                if query_return is not None:
+                    drop_constraint = DDL(f"""BEGIN TRY
+                                                    ALTER TABLE {cloned_schema}.{main_table_name} DROP CONSTRAINT {query_return}
+                                                END TRY BEGIN CATCH END CATCH""")
+                    
+                    print(f" !CONSTRAINT {query_return} DROPPED FOR THIS OPERATION")
+                    logging.info(f" !CONSTRAINT {query_return} DROPPED FOR THIS OPERATION")
+                    event.listen(Base.metadata, 'before_create', drop_constraint.execute_if(dialect=mssql.dialect()))
+
             except Exception as e:
-                del drop_constraint
+               
                 logging.info(e)
                 logging.info("Constraint Default not Found")
+
 
             drop_column_query = DDL(f"""ALTER TABLE {cloned_schema}.{main_table_name} 
                                         DROP COLUMN {column_target}""")
                 
-                
             
+                
             event.listen(Base.metadata, 'before_create', drop_column_query.execute_if(dialect=mssql.dialect()))
             logging.info(f"Acomplished DROP COLUMN {column_target} in {cloned_db}.{cloned_schema}.{main_table_name}")
-        Base.metadata.create_all(cloned_engine)
+    Base.metadata.create_all(cloned_engine)
 else:
     logging.info(f"Table {main_table_name} Not Found in {cloned_db}.{cloned_schema}")
     exit()

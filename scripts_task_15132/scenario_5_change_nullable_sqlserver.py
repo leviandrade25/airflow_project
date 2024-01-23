@@ -3,30 +3,8 @@ from sqlalchemy.inspection import inspect
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.postgresql import *
 from sqlalchemy.orm import declarative_base
-import re
 import logging
-import pandas as pd
-
-
-def execute_query_and_store_result(connection_string, query):
-    engine = create_engine(connection_string)
-
-    with engine.connect() as connection:
-        result = pd.read_sql(query, connection)
-
-    return result.iloc[0, 0]
-
-
-
-
-
-def remove_collate(column_type):
-    return str(column_type).split(" ")[0]
-
-
-
-def remove_parenteses(texto):
-    return re.sub(r'\(.*\)', '', texto)
+from function_module._functions import remove_collate, execute_query_and_store_result, remove_parenteses
 
 Base = declarative_base()
 
@@ -84,7 +62,6 @@ except Exception as e:
 if main_table_name in cloned_tables:
     for column_target in columns_target_type.keys():
         drop_constraint = ""
-        print(column_target)
         if column_target in columns_source_type.keys():
             
             if (remove_parenteses(str(columns_target_type[column_target]['type'])) == remove_parenteses(str(columns_source_type[column_target]['type']))) is True:
